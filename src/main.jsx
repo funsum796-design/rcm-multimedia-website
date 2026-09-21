@@ -1,29 +1,38 @@
-import React,{useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import './styles.css';
+import {getProducts} from './lib/store';
 
-const products=[
-{id:1,name:'7 Straps Watch With Bluetooth Speaker',price:1950,cat:'Smart Watches',img:'https://www.rcmmultimedia.com/storage/photos/1/Smart%20Watches/IMG_3116.jpeg',hot:true},
-{id:2,name:'Airpods Pro 2 Loop',price:80,cat:'Air pods',img:'https://www.rcmmultimedia.com/storage/photos/1/gadgets/IMG_7947.JPG',hot:true},
-{id:3,name:'i20 Ultra Max Suit Smartwatch with 7 Straps + Airpods',price:1680,cat:'Smart Watches',img:'https://www.rcmmultimedia.com/storage/photos/1/Smart%20Watches/201430a0-fee3-458a-80b7-68e21328182b.JPG',hot:true},
-{id:4,name:'Pixel Buds Pro 2',price:1000,cat:'Air pods',img:'https://www.rcmmultimedia.com/storage/photos/1/Airpods/IMG_5612.jpeg',hot:true},
-{id:5,name:'Airpods Pro 2 Black Loose',price:580,cat:'Air pods',img:'https://www.rcmmultimedia.com/storage/photos/1/Airpods/IMG_5587.jpeg'},
-{id:6,name:'Pro 2 Loose With Buzzer Option',price:480,cat:'Air pods',img:'https://www.rcmmultimedia.com/storage/photos/1/Airpods/IMG_4746.jpeg'},
-{id:7,name:'P9 Headphone With Good Sound',price:700,cat:'Headphones',img:'https://www.rcmmultimedia.com/storage/photos/1/headphones/IMG_3889.jpeg'},
-{id:8,name:'Wired Gaming Headphone 3.5mm',price:1800,cat:'Gaming',img:'https://www.rcmmultimedia.com/storage/photos/1/Gaming%20Accessories/IMG_7085.jpg'},
-{id:9,name:'Airpods Max Wireless Headphone',price:2300,cat:'Headphones',img:'https://www.rcmmultimedia.com/storage/photos/1/headphones/IMG_3889.jpeg'},
-{id:10,name:'BY-V1 Ultracompact Wireless Microphone',price:7600,cat:'Vlogging',img:'https://www.rcmmultimedia.com/storage/photos/1/IMG-20260727-WA0136.jpg'},
-{id:11,name:'HIDDEN T3 WiFi Table Clock HD 1080P',price:6500,cat:'Gadgets',img:'https://www.rcmmultimedia.com/storage/photos/1/IMG-20260727-WA0136.jpg'},
-{id:12,name:'Anker 45W PD Adapter Original',price:6500,cat:'Chargers',img:'https://www.rcmmultimedia.com/storage/photos/1/WhatsApp%20Image%202026-07-17%20at%2011.24.13%20AM.jpeg'},
-{id:13,name:'Dual Port Fast Charger 120W',price:400,cat:'Chargers',img:'https://www.rcmmultimedia.com/storage/photos/1/WhatsApp%20Image%202026-07-17%20at%2011.24.13%20AM.jpeg'},
-{id:14,name:'USB Hub 3.0 4 Port',price:480,cat:'Computer Accessories',img:'https://rcmmultimedia.com/storage/photos/1/Computer%20Accessories/usb_hub_30_4_port_3033031473687324.jpg'}
-];
 const cats=[['◉','Smart Watches'],['◒','Air pods'],['◉','Headphones'],['◌','Vlogging'],['▣','Gaming'],['⚡','Chargers'],['⌘','Computer Accessories'],['✦','Gadgets']];
 const money=n=>`Rs ${n.toLocaleString('en-PK',{minimumFractionDigits:2})}`;
 
 function App(){
  const [search,setSearch]=useState(''),[cat,setCat]=useState('All'),[cart,setCart]=useState([]),[wish,setWish]=useState([]),[menu,setMenu]=useState(false),[quick,setQuick]=useState(null),[notice,setNotice]=useState('');
- const filtered=useMemo(()=>products.filter(p=>(cat==='All'||p.cat===cat)&&p.name.toLowerCase().includes(search.toLowerCase())),[cat,search]);
+ const [dbProducts,setDbProducts]=useState([]);
+const [loading,setLoading]=useState(true);
+const [dbError,setDbError]=useState('');
+
+useEffect(()=>{
+  getProducts()
+    .then(data=>{
+      const mapped=data.map(p=>({
+        id:p.id,
+        name:p.name,
+        price:Number(p.price),
+        cat:p.categories?.name || 'Gadgets',
+        img:p.image_url,
+        hot:p.is_featured
+      }));
+      setDbProducts(mapped);
+    })
+    .catch(error=>{
+      console.error('Supabase products error:',error);
+      setDbError(error.message);
+    })
+    .finally(()=>setLoading(false));
+},[]);
+ const activeProducts=dbProducts;
+const filtered=useMemo(()=>activeProducts.filter(p=>(cat==='All'||p.cat===cat)&&p.name.toLowerCase().includes(search.toLowerCase())),[activeProducts,cat,search]);
  const add=p=>{setCart(c=>[...c,p]);setNotice(`${p.name} added to cart`);setTimeout(()=>setNotice(''),1800)};
  const toggleWish=id=>setWish(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]);
  const total=cart.reduce((s,p)=>s+p.price,0);
@@ -36,9 +45,9 @@ function App(){
    <div className="actions"><div className="search"><span>⌕</span><input value={search} onChange={e=>{setSearch(e.target.value);document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})}} placeholder="Search products..."/></div><button title="Wishlist" className="icon" onClick={()=>setNotice(`${wish.length} item${wish.length===1?'':'s'} in wishlist`)}>♡<i>{wish.length}</i></button><button title="Cart" className="icon" onClick={()=>document.getElementById('cart')?.classList.add('show')}>🛒<i>{cart.length}</i></button></div>
  </div></header>
  <main id="home">
-  <section className="hero"><div className="hero-inner container"><div className="hero-copy"><span className="eyebrow">RCM MULTIMEDIA · LAHORE</span><h1>Technology<br/><em>upgraded.</em></h1><p>Discover smart wearables, immersive audio, creator gear and everyday tech — selected to keep you connected.</p><div className="hero-buttons"><a href="#shop" className="btn primary">Shop the collection <span>→</span></a><a href="#categories" className="btn ghost">Explore categories</a></div><div className="hero-meta"><span>✓ Curated products</span><span>✓ Nationwide delivery</span><span>✓ Easy support</span></div></div><div className="hero-art"><div className="orb"></div><img src={products[0].img} alt="RCM smartwatch"/><div className="floating"><small>FEATURED</small><b>7 Straps Watch</b><span>{money(1950)}</span></div></div></div></section>
+  <section className="hero"><div className="hero-inner container"><div className="hero-copy"><span className="eyebrow">RCM MULTIMEDIA · LAHORE</span><h1>Technology<br/><em>upgraded.</em></h1><p>Discover smart wearables, immersive audio, creator gear and everyday tech — selected to keep you connected.</p><div className="hero-buttons"><a href="#shop" className="btn primary">Shop the collection <span>→</span></a><a href="#categories" className="btn ghost">Explore categories</a></div><div className="hero-meta"><span>✓ Curated products</span><span>✓ Nationwide delivery</span><span>✓ Easy support</span></div></div><div className="hero-art"><div className="orb"></div><img src={dbProducts[0]?.img} alt="RCM smartwatch"/><div className="floating"><small>FEATURED</small><b>{dbProducts[0]?.name || "Loading..."}</b><span>{dbProducts[0] ? money(dbProducts[0].price) : ""}</span></div></div></div></section>
   <section id="categories" className="section container"><div className="section-head"><div><span className="eyebrow">SHOP BY CATEGORY</span><h2>Find your next <em>upgrade.</em></h2></div><a href="#shop">View all →</a></div><div className="cat-grid">{cats.map(([ico,c])=><button key={c} onClick={()=>{setCat(c);document.getElementById('shop').scrollIntoView({behavior:'smooth'})}}><span>{ico}</span><b>{c}</b><small>Explore →</small></button>)}</div></section>
-  <section id="deals" className="deal"><div className="container deal-inner"><div><span className="eyebrow">LIMITED-TIME PICKS</span><h2>Smart tech.<br/><em>Smart prices.</em></h2><p>Upgrade your setup with standout gadgets from the RCM collection.</p><a className="btn light" href="#shop">Shop deals →</a></div><div className="deal-products">{products.slice(1,4).map(p=><Product key={p.id} p={p} add={add} wish={wish} toggleWish={toggleWish} compact/>)}</div></div></section>
+  <section id="deals" className="deal"><div className="container deal-inner"><div><span className="eyebrow">LIMITED-TIME PICKS</span><h2>Smart tech.<br/><em>Smart prices.</em></h2><p>Upgrade your setup with standout gadgets from the RCM collection.</p><a className="btn light" href="#shop">Shop deals →</a></div><div className="deal-products">{activeProducts.slice(1,4).map(p=><Product key={p.id} p={p} add={add} wish={wish} toggleWish={toggleWish} compact/>)}</div></div></section>
   <section id="shop" className="section container"><div className="section-head"><div><span className="eyebrow">CURATED FOR YOU</span><h2>Trending <em>technology.</em></h2></div><div className="chips"><button className={cat==='All'?'active':''} onClick={()=>setCat('All')}>All</button>{['Smart Watches','Air pods','Headphones','Vlogging'].map(c=><button className={cat===c?'active':''} key={c} onClick={()=>setCat(c)}>{c}</button>)}</div></div><div className="products">{filtered.map(p=><Product key={p.id} p={p} add={add} wish={wish} toggleWish={toggleWish} setQuick={setQuick}/>)}</div>{!filtered.length&&<div className="empty">No products match “{search}”.</div>}</section>
   <section id="about" className="about"><div className="container about-grid"><div><span className="eyebrow">THE RCM STANDARD</span><h2>More than gadgets.<br/><em>Better experiences.</em></h2></div><div><p>RCM Multimedia brings together practical technology, personal audio, smart wearables, gaming accessories and creator essentials under one modern shopping experience.</p><p>From our Lahore base, we serve customers across Pakistan with a product-first approach and straightforward support.</p><a href="#contact" className="text-link">Talk to RCM →</a></div></div></section>
   <section className="newsletter"><div className="container newsletter-inner"><div><span className="eyebrow">STAY IN THE LOOP</span><h2>New tech, fresh deals.</h2></div><form onSubmit={e=>{e.preventDefault();setNotice('Thanks — you are on the RCM list.')}}><input type="email" required placeholder="Your email address"/><button className="btn primary">Subscribe →</button></form></div></section>
